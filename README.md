@@ -122,12 +122,12 @@ status_file = "~/Library/Logs/SrvWatch/fail2ban-status.json"  # from the root he
 [tunnel]
 enabled = true
 pattern = "autossh"     # process-name pattern
-remote_port = 2292      # require this -R forward; omit for "any"
+remote_port = 3002      # require this -R forward; omit for "any"
 
 [drive]
 label = "MyDrive"                 # display name
 mount = "/Volumes/MyDrive"        # expected mount point
-device = "disk6s1"                # diskutil selector, works while unmounted
+device = "disk5s2"                # diskutil selector, works while unmounted
 required = false                  # true = raise an issue when absent
 
 [weather]

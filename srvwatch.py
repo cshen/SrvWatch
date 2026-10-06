@@ -1236,15 +1236,15 @@ header .sub { margin-top: 8px; color: var(--muted); font-size: 13px; }
 .val-warn { color: var(--warn); }
 .val-crit { color: var(--crit); }
 .val-na { color: var(--muted2); }
-.section { margin-top: 48px; }
+.section, .res-panel { margin-top: 48px; }
 .section .sub { margin-bottom: 14px; color: var(--muted); font-size: 13px; }
-.section h2 {
+.section h2, .res-panel h2 {
   display: flex; align-items: center; gap: 14px; margin: 0 0 15px;
   color: var(--fg-strong); font-family: "SFMono-Regular", Menlo, Monaco, monospace;
   font-size: 11px; font-weight: 600; text-transform: uppercase;
 }
-.section h2::before { content: ""; width: 7px; height: 7px; background: var(--accent); }
-.section h2::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.section h2::before, .res-panel h2::before { content: ""; width: 7px; height: 7px; background: var(--accent); }
+.section h2::after, .res-panel h2::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .section .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .section .card { grid-column: span 1; min-height: 176px; }
 .section .card:nth-child(1), .section .card:nth-child(2) { grid-column: span 1; min-height: 176px; }
@@ -1342,7 +1342,7 @@ footer { animation-delay: 240ms; }
   .card:nth-child(1) .v, .card:nth-child(2) .v { font-size: 34px; }
   .section .card:nth-child(1) .v, .section .card:nth-child(2) .v { font-size: 18px; }
   th, td { padding: 10px 8px; }
-  .section { margin-top: 38px; }
+  .section, .res-panel { margin-top: 38px; }
 }
 @media (max-width: 430px) {
   .grid, .section .grid { grid-template-columns: 1fr; }
@@ -1921,7 +1921,12 @@ def render_html(data):
     <span class="badge {status}">{status.upper()}</span>
   </header>
 
-  <div class="grid">{cards_html}</div>
+  {render_weather(data.get("weather"))}
+
+  <div class="res-panel">
+    <h2>CPU/GPU/Mem</h2>
+    <div class="grid">{cards_html}</div>
+  </div>
 
   <div class="section">
     <h2>Services</h2>
@@ -1932,8 +1937,6 @@ def render_html(data):
   {render_security(data.get("security"), data.get("fail2ban"))}
 
   {render_connectivity(data.get("connectivity"))}
-
-  {render_weather(data.get("weather"))}
 
   <div class="section">
     <h2>Disks</h2>
