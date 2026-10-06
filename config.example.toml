@@ -22,8 +22,8 @@ path = "/opt/homebrew/bin/macmon"
 
 [mediasrv]
 # The media server being watched.
-port = 9000
-url = "http://127.0.0.1:9000/"
+port = 8000
+url = "http://127.0.0.1:8000/"
 pattern = "mediasrv"
 
 [ssh]
@@ -41,7 +41,7 @@ status_file = "~/Library/Logs/SrvWatch/fail2ban-status.json"
 # Reverse SSH tunnel kept alive by autossh (see ~/bin/ssh_reverse.sh).
 enabled = true
 pattern = "autossh"
-remote_port = 2292        # require this -R forward; omit for "any"
+remote_port = 3002        # require this -R forward; omit for "any"
 
 [drive]
 # External drive that should stay available, with SMART health (via diskutil,
@@ -50,7 +50,7 @@ remote_port = 2292        # require this -R forward; omit for "any"
 # still be read. Set `required = true` to raise an issue when the drive is gone.
 label = "MyDrive"
 mount = "/Volumes/MyDrive"
-device = "disk6s1"
+device = "disk5s2"
 required = false
 
 [weather]
