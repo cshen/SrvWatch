@@ -1,0 +1,81 @@
+# SrvWatch configuration — example / template.
+#
+# Copy this file to config.toml (next to srvwatch.py) and edit as needed.
+# Every setting is optional; unlisted keys fall back to built-in defaults.
+# Environment variables (SRVWATCH_*) override anything set here.
+
+[server]
+host = "0.0.0.0"     # 0.0.0.0 = reachable from other devices on the LAN
+port = 9001
+
+[monitor]
+# How often to re-sample everything, in seconds (e.g. 5, 10, 20, 30 ...).
+refresh = 5
+
+[theme]
+# "dark" or "light"
+theme = "dark"
+
+[macmon]
+# Path to the macmon binary (used for CPU/GPU temp, fans, power, memory).
+path = "/opt/homebrew/bin/macmon"
+
+[mediasrv]
+# The media server being watched.
+port = 9000
+url = "http://127.0.0.1:9000/"
+pattern = "mediasrv"
+
+[ssh]
+port = 22
+
+[fail2ban]
+# Brute-force protection. Liveness is checked with pgrep (no root needed).
+# Jail/ban counts require the optional root helper:
+#   ./deploy/install-launchd.sh install-fail2ban
+enabled = true
+pattern = "fail2ban"
+status_file = "~/Library/Logs/SrvWatch/fail2ban-status.json"
+
+[tunnel]
+# Reverse SSH tunnel kept alive by autossh (see ~/bin/ssh_reverse.sh).
+enabled = true
+pattern = "autossh"
+remote_port = 2292        # require this -R forward; omit for "any"
+
+[drive]
+# External drive that should stay available, with SMART health (via diskutil,
+# no root needed). `mount` is the expected mount point; `device` is a diskutil
+# selector (e.g. disk6s1) used even when the volume is unmounted, so SMART can
+# still be read. Set `required = true` to raise an issue when the drive is gone.
+label = "MyDrive"
+mount = "/Volumes/MyDrive"
+device = "disk6s1"
+required = false
+
+[weather]
+# Command that prints weather + air quality as JSON on stdout.
+command = "~/bin/aqi.sh -j"
+# How often to refresh weather, in seconds (weather changes slowly).
+interval = 3600
+# How long to allow the command to run before giving up, in seconds.
+timeout = 30
+# Number of future days shown in the compact forecast table (0 = hide).
+forecast_days = 2
+
+[thresholds]
+# Temperature thresholds in degrees Celsius.
+temp_warn = 70.0
+temp_crit = 85.0
+# Disk "percent used" thresholds.
+disk_warn = 80.0
+disk_crit = 90.0
+
+[checks]
+# Extra services to watch. Each entry is  name = "type:target", where type is:
+#   process:<pgrep -f pattern>      e.g. process:ollama
+#   port:<tcp port on 127.0.0.1>    e.g. port:11434
+#   url:<http url>                  e.g. url:http://127.0.0.1:8080/health
+# Uncomment to enable:
+# ollama  = "port:11434"
+# unbound = "process:unbound"
