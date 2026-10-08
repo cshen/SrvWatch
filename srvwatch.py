@@ -5,6 +5,7 @@ SrvWatch — a tiny, self-contained server-health monitor.
 Runs an HTTP service on port 9001 that reports the health of this machine:
   * CPU / GPU temperature and utilization, fans, power, memory (via macmon)
   * whether the MediaSrv media server is running and responding
+  * whether the personal wiki HTTP service on port 8000 is responding
   * whether SSH (Remote Login) is up
   * disk usage, load average, uptime, top processes, network addresses
 
@@ -122,6 +123,8 @@ def load_config():
         "mediasrv_port": 9000,
         "mediasrv_url": None,  # computed below from the port
         "mediasrv_pattern": "mediasrv",
+        "wiki_port": 8000,
+        "wiki_url": None,      # computed below from the port
         "ssh_port": 22,
         "weather_command": "~/bin/aqi.sh -j",
         "weather_interval": 3600,  # seconds between weather refreshes
@@ -164,6 +167,8 @@ def load_config():
             "mediasrv_port": d.get("mediasrv", {}).get("port"),
             "mediasrv_url": d.get("mediasrv", {}).get("url"),
             "mediasrv_pattern": d.get("mediasrv", {}).get("pattern"),
+            "wiki_port": d.get("wiki", {}).get("port"),
+            "wiki_url": d.get("wiki", {}).get("url"),
             "ssh_port": d.get("ssh", {}).get("port"),
             "weather_command": d.get("weather", {}).get("command"),
             "weather_interval": d.get("weather", {}).get("interval"),
@@ -200,6 +205,8 @@ def load_config():
         "SRVWATCH_MEDIASRV_PORT": ("mediasrv_port", int),
         "SRVWATCH_MEDIASRV_URL": ("mediasrv_url", str),
         "SRVWATCH_MEDIASRV_PATTERN": ("mediasrv_pattern", str),
+        "SRVWATCH_WIKI_PORT": ("wiki_port", int),
+        "SRVWATCH_WIKI_URL": ("wiki_url", str),
         "SRVWATCH_SSH_PORT": ("ssh_port", int),
         "SRVWATCH_WEATHER_COMMAND": ("weather_command", str),
         "SRVWATCH_WEATHER_INTERVAL": ("weather_interval", int),
@@ -225,6 +232,8 @@ def load_config():
 
     if not cfg["mediasrv_url"]:
         cfg["mediasrv_url"] = f"http://127.0.0.1:{cfg['mediasrv_port']}/"
+    if not cfg["wiki_url"]:
+        cfg["wiki_url"] = f"http://127.0.0.1:{cfg['wiki_port']}/"
     if cfg["theme"] not in ("dark", "light"):
         cfg["theme"] = "dark"
     return cfg
@@ -352,10 +361,10 @@ def collect_macmon():
     }
 
 
-def check_mediasrv():
+def _check_http_service(label, url, port, pattern=None):
     result = {
-        "label": "MediaSrv",
-        "url": CONFIG["mediasrv_url"],
+        "label": label,
+        "url": url,
         "status": "down",
         "pid": None,
         "port_open": False,
@@ -363,20 +372,21 @@ def check_mediasrv():
         "http_latency_ms": None,
     }
     # Process
-    rc, out, _ = run_cmd(["pgrep", "-f", CONFIG["mediasrv_pattern"]], timeout=3)
-    pids = [p for p in out.split() if p.strip() and p.strip() != str(os.getpid())]
-    if pids:
-        try:
-            result["pid"] = int(pids[0])
-        except ValueError:
-            pass
+    if pattern:
+        rc, out, _ = run_cmd(["pgrep", "-f", pattern], timeout=3)
+        pids = [p for p in out.split() if p.strip() and p.strip() != str(os.getpid())]
+        if pids:
+            try:
+                result["pid"] = int(pids[0])
+            except ValueError:
+                pass
     # TCP port
-    open_, _err = check_port("127.0.0.1", CONFIG["mediasrv_port"], timeout=2)
+    open_, _err = check_port("127.0.0.1", port, timeout=2)
     result["port_open"] = open_
     # HTTP round trip
     try:
         t0 = time.time()
-        req = urllib.request.Request(CONFIG["mediasrv_url"], method="GET")
+        req = urllib.request.Request(url, method="GET")
         with urllib.request.urlopen(req, timeout=3) as resp:
             result["http_status"] = resp.status
             result["http_latency_ms"] = round((time.time() - t0) * 1000, 1)
@@ -391,6 +401,23 @@ def check_mediasrv():
     else:
         result["status"] = "down"
     return result
+
+
+def check_mediasrv():
+    return _check_http_service(
+        "MediaSrv",
+        CONFIG["mediasrv_url"],
+        CONFIG["mediasrv_port"],
+        CONFIG["mediasrv_pattern"],
+    )
+
+
+def check_wiki():
+    return _check_http_service(
+        "Personal Wiki",
+        CONFIG["wiki_url"],
+        CONFIG["wiki_port"],
+    )
 
 
 def check_ssh():
@@ -999,6 +1026,7 @@ def collect_all():
         "loadavg": list(os.getloadavg()),
         "hardware": collect_macmon(),
         "mediasrv": check_mediasrv(),
+        "wiki": check_wiki(),
         "ssh": check_ssh(),
         "fail2ban": check_fail2ban(),
         "tunnel": check_tunnel(),
@@ -1016,6 +1044,8 @@ def collect_all():
     issues = []
     if data["mediasrv"]["status"] != "ok":
         issues.append(f"mediasrv:{data['mediasrv']['status']}")
+    if data["wiki"]["status"] != "ok":
+        issues.append(f"wiki:{data['wiki']['status']}")
     if data["ssh"]["status"] != "ok":
         issues.append(f"ssh:{data['ssh']['status']}")
     if data["fail2ban"]["status"] == "down":
@@ -1710,6 +1740,7 @@ def render_html(data):
     hw = data.get("hardware", {})
     mem = hw.get("memory", {})
     msv = data.get("mediasrv", {})
+    wiki = data.get("wiki", {})
     ssh = data.get("ssh", {})
     ips = data.get("local_ips", [])
     status = data.get("status", "unknown")
@@ -1765,14 +1796,18 @@ def render_html(data):
             f'<td>{st}</td><td>{detail}</td></tr>'
         )
 
-    msv_detail = []
-    if msv.get("pid"):
-        msv_detail.append(f"pid {msv['pid']}")
-    if msv.get("http_status"):
-        msv_detail.append(f"HTTP {msv['http_status']}")
-    if msv.get("http_latency_ms") is not None:
-        msv_detail.append(f"{msv['http_latency_ms']}ms")
-    msv_detail = " · ".join(msv_detail) or "not detected"
+    def http_service_detail(obj):
+        detail = []
+        if obj.get("pid"):
+            detail.append(f"pid {obj['pid']}")
+        if obj.get("http_status"):
+            detail.append(f"HTTP {obj['http_status']}")
+        if obj.get("http_latency_ms") is not None:
+            detail.append(f"{obj['http_latency_ms']}ms")
+        return " · ".join(detail) or "not detected"
+
+    msv_detail = http_service_detail(msv)
+    wiki_detail = http_service_detail(wiki)
 
     ssh_detail = f"port {ssh.get('port')} open" if ssh.get("port_open") else "port closed"
 
@@ -1802,6 +1837,7 @@ def render_html(data):
 
     services = (
         svc_html("MediaSrv (media server)", msv, msv_detail)
+        + svc_html("Personal Wiki", wiki, wiki_detail)
         + svc_html("SSH (Remote Login)", ssh, ssh_detail)
         + svc_html("fail2ban", fb, fb_detail)
         + svc_html("Reverse SSH tunnel", tn, tn_detail)

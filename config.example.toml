@@ -22,9 +22,14 @@ path = "/opt/homebrew/bin/macmon"
 
 [mediasrv]
 # The media server being watched.
+port = 9000
+url = "http://127.0.0.1:9000/"
+pattern = "mediasrv"
+
+[wiki]
+# The personal wiki HTTP service being watched.
 port = 8000
 url = "http://127.0.0.1:8000/"
-pattern = "mediasrv"
 
 [ssh]
 port = 22

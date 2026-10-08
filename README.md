@@ -16,6 +16,7 @@ dependencies beyond the Python standard library and the already-installed
 | Power | `macmon pipe` | system / total watts |
 | Memory & swap | `macmon pipe` | used / total |
 | **MediaSrv** | process + TCP :9000 + HTTP 200 | the media server |
+| **Personal Wiki** | TCP :8000 + HTTP 200 | the personal wiki |
 | **SSH** (Remote Login) | TCP :22 + sshd processes | connectivity |
 | **fail2ban** | process + optional status file | brute-force protection liveness (jails/bans with the root helper) |
 | **Reverse SSH tunnel** | `autossh` process + `-R` forward | remote access via `~/bin/ssh_reverse.sh` |
@@ -111,6 +112,10 @@ port = 9000
 url = "http://127.0.0.1:9000/"
 pattern = "mediasrv"
 
+[wiki]
+port = 8000
+url = "http://127.0.0.1:8000/"
+
 [ssh]
 port = 22
 
@@ -162,6 +167,8 @@ disk_crit = 90.0     # percent used
 | `SRVWATCH_MEDIASRV_PORT` | `9000` | MediaSrv port to check |
 | `SRVWATCH_MEDIASRV_URL` | `http://127.0.0.1:9000/` | MediaSrv health URL |
 | `SRVWATCH_MEDIASRV_PATTERN` | `mediasrv` | Process-name pattern |
+| `SRVWATCH_WIKI_PORT` | `8000` | Personal wiki port to check |
+| `SRVWATCH_WIKI_URL` | `http://127.0.0.1:8000/` | Personal wiki HTTP URL |
 | `SRVWATCH_SSH_PORT` | `22` | SSH port to check |
 | `SRVWATCH_FAIL2BAN_ENABLED` | `true` | Monitor fail2ban |
 | `SRVWATCH_FAIL2BAN_PATTERN` | `fail2ban` | fail2ban process pattern |
